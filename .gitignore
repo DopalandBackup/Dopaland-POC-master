@@ -1,0 +1,92 @@
+# This file exists because raw participant media (face video, audio,
+# images) must NEVER enter this repository's git history under any
+# circumstances -- history is permanent, and a repository that has ever
+# contained such data is compromised for its whole life (CLAUDE.md
+# guardrail G4). Everything below is excluded for that reason, for
+# reproducibility (large model binaries -- see models/MODEL_MANIFEST.md),
+# or because it is local/regenerable tooling state rather than a
+# client-facing artefact. This file is present from the repository's
+# first commit, deliberately, before any other content was added.
+
+# --- Raw media, broad coverage by extension (see .githooks/pre-commit
+# for the magic-byte check that backs this up) ---
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.wmv
+*.flv
+*.m4v
+*.mpg
+*.mpeg
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+*.flac
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.heic
+*.webp
+*.raw
+
+# --- Capture/frame output directories, wherever they appear ---
+frames/
+frame_output/
+captures/
+recordings/
+scratchpad/
+batch_videos/
+
+# --- Secrets ---
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# --- Model bundles: large binary dependency, not source or output.
+# Checksummed and documented in models/MODEL_MANIFEST.md, which IS
+# committed -- that file is the reproducibility record; the binaries
+# themselves are not. ---
+models/*.task
+
+# --- Raw/derived data logs. The manifest gets committed, not the data
+# itself (CLAUDE.md TRAINING-GRADE DATA). See PROVENANCE.md for the open
+# item on this directory's physical location.
+#
+# Pattern is `logs/*` + a negation, NOT a blanket `logs/` -- git cannot
+# re-include a file inside a directory that the directory-level pattern
+# itself excluded (a bare `logs/` stops git from even looking inside it),
+# so the directory has to stay traversable and every individual file
+# excluded instead. This is what lets logs/variant_log.jsonl be tracked
+# (Gate 0 provenance log) while every other file in logs/ stays out. ---
+logs/*
+!logs/variant_log.jsonl
+
+# --- Python / build artefacts ---
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+
+# --- IDE / OS cruft ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Local tooling state, not a client artefact ---
+.claude/

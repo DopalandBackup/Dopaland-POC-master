@@ -1,0 +1,54 @@
+{
+  "block": "A_t",
+  "manifest_version": 1,
+  "module": "features/attention.py",
+  "generated_for": "D0PA1 Batch 1 Step 3 (feature-block separation)",
+  "notes": [
+    "PERMITTED: X_core -> A_t (this module's BlinkDetector receives V_es's own aperture value as a plain parameter from its caller -- it never imports features.x_core to fetch it itself). FORBIDDEN: A_t -> X_core and A_t -> E_t -- this module must never be imported BY features.x_core.py or features.episodes.py, and must never import them itself. Enforced by tests/test_feature_separation.py.",
+    "EVERYTHING in this manifest is UNVALIDATED and PILOT-only (CLAUDE.md's 'Attention / screen-orientation -- PILOT, not POC' note) -- none of it was part of the scored, historical Gate 2 result (GATE2_FINDINGS.md covers V_bf/V_es/V_pd only).",
+    "This is the block CLAUDE.md's D1 requirement singles out by name: 'Existing V_so / gaze / blink code is attention-class -- it belongs in A_t and must never reach X_core or E_t.'"
+  ],
+  "shared_constants_note": "IRIS_LEFT_CENTER, IRIS_RIGHT_CENTER, EYE_R_OUTER, EYE_R_INNER, EYE_L_OUTER, EYE_L_INNER are defined once in features/geometry.py and used by BOTH this block (compute_v_so's gaze-centering input, compute_gaze_direction) AND X_core (compute_v_es's aperture/cheek_raise) -- see features/geometry.py's own module docstring and x_core_v1.json. This is a shared UPSTREAM landmark constant, not an A_t -> X_core flow: both blocks independently read the same raw landmark index from the geometry layer.",
+  "features": [
+    {
+      "feature_name": "screen_orientation (V_so)",
+      "block": "A_t",
+      "status": "UNVALIDATED, PILOT. Yaw component confirmed reliable by directed testing; pitch component confirmed UNRELIABLE (structural limit, not fixable here). NOT composited into Valence/Arousal. Needs no per-person calibration.",
+      "source_variables": ["pose-normalized face landmarks (gaze-centering input, via geometry's IRIS_*/EYE_* constants)", "yaw_deg, pitch_deg (from geometry.yaw_pitch_roll_from_matrix, passed in by the caller -- not recomputed here)"],
+      "upstream_blocks_used": ["geometry (IRIS_*, EYE_*_OUTER/INNER landmark indices)"],
+      "formula_reference": "features/attention.py:compute_v_so, features/attention.py:_gaze_centering_score",
+      "units": "0..1 orientation score, plus a boolean oriented threshold call",
+      "version": 1
+    },
+    {
+      "feature_name": "attention_window_summary (screen_orientation / gaze_direction / look_away_rate)",
+      "block": "A_t",
+      "status": "UNVALIDATED, PILOT. Three independently-scoreable signals (validation-prep requirement, same discipline as Gate 2's per-vector scoring) over the SAME rolling_10s_window cadence as episodes.py's WindowAccumulator, but on an entirely independent clock/object -- never touches WindowAccumulator or NeutralCalibrator.",
+      "source_variables": ["per-sample screen_orientation (V_so) score, oriented flag, gaze_score, gaze_reliable flag, collected over one window"],
+      "upstream_blocks_used": ["geometry (WINDOW_SECONDS)"],
+      "formula_reference": "features/attention.py:AttentionWindowAccumulator.flush",
+      "units": "avg/peak/variance of the 0..1 score, plus oriented_rate/gaze_reliable_rate/look_away_rate fractions",
+      "version": 1
+    },
+    {
+      "feature_name": "gaze_direction (L/R/C, EXPERIMENTAL SIGNALS PART 2)",
+      "block": "A_t",
+      "status": "UNVALIDATED, EXPERIMENTAL. Coarse horizontal-only label. Reuses the same landmarks/ratio approach as _gaze_centering_score but keeps the SIGNED difference instead of an unsigned average (see docstring for why). Never composited into any affect vector.",
+      "source_variables": ["pose-normalized face landmarks (IRIS_LEFT_CENTER/IRIS_RIGHT_CENTER against EYE_*_OUTER/INNER)"],
+      "upstream_blocks_used": ["geometry (IRIS_*, EYE_*_OUTER/INNER landmark indices)"],
+      "formula_reference": "features/attention.py:compute_gaze_direction",
+      "units": "discrete label (LEFT/RIGHT/CENTER/UNKNOWN) + raw signed shift (logged, never displayed as a precise angle)",
+      "version": 1
+    },
+    {
+      "feature_name": "blink_rate (EXPERIMENTAL SIGNALS PART 2)",
+      "block": "A_t",
+      "status": "UNVALIDATED, EXPERIMENTAL. Simple relative-threshold state machine, not a trained classifier. Reads V_es's own aperture value (X_core -> A_t, permitted) as a plain float parameter passed in by the caller -- never touches ear() or recomputes aperture. Never composited into any affect vector.",
+      "source_variables": ["X_core's V_es aperture value (compute_v_es's es_components['aperture']), passed in by the caller every cycle -- this module never imports features.x_core to fetch it"],
+      "upstream_blocks_used": [],
+      "formula_reference": "features/attention.py:BlinkDetector",
+      "units": "blinks per minute (rolling 30s window), or 'measuring' until BLINK_MIN_OBSERVATION_SECONDS of data has accumulated",
+      "version": 1
+    }
+  ]
+}

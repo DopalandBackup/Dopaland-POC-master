@@ -1,0 +1,12 @@
+{
+  "block": "C_t",
+  "manifest_version": 1,
+  "module": "features/context.py",
+  "generated_for": "D0PA1 Batch 1 Step 3 (feature-block separation)",
+  "status": "NONEXISTENT -- not 'clean'. A repo-wide search for context_id, \"C_t\", ROI, roi_id, and salience terms (done before any code was moved in this task) found zero matches anywhere in this repository.",
+  "notes": [
+    "WATCH THIS BLOCK if it is ever filled in: C_t -> E_t is a PERMITTED direction (E_t = h(X_core, dX_core, C_t) by definition), which makes context a legal-looking back door for attention into the core. Any future context feature that is ROI-derived or gaze-derived (dwell time on a region, fixation-weighted context, anything computed from features/attention.py) would be an attention-class value smuggled in through a permitted channel and must be flagged loudly, not added quietly. See docs/D1_DEPENDENCY_MAP.md.",
+    "features/context.py exposes NO functions, classes, or constants -- an empty module is the honest representation of 'this does not exist yet' (G3)."
+  ],
+  "features": []
+}

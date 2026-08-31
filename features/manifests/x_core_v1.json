@@ -1,0 +1,112 @@
+{
+  "block": "X_core",
+  "manifest_version": 1,
+  "module": "features/x_core.py",
+  "generated_for": "D0PA1 Batch 1 Step 3 (feature-block separation)",
+  "notes": [
+    "X_core -> E_t and X_core -> A_t are PERMITTED directions (a caller in episodes.py or attention.py may read an X_core value passed to it as a parameter). A_t -> X_core and U_t -> X_core are FORBIDDEN -- this module must never import features.attention or features.audio, directly or transitively. Enforced by tests/test_feature_separation.py.",
+    "No entry in this manifest implements a pass/fail, score, threshold, or verdict (G1). Composite vs logged-only status below reflects the Gate 2 (POC, historical) scoring result already reported in GATE2_FINDINGS.md -- it is a record of a past, human-applied decision, not a rule this code applies at runtime."
+  ],
+  "features": [
+    {
+      "feature_name": "v_bf",
+      "block": "X_core",
+      "status": "logged_only -- demoted, did NOT generalize at Gate 2 (Decision 17)",
+      "source_variables": ["pose-normalized face landmarks (BROW_INNER_R, BROW_INNER_L, GLABELLA)", "io_dist (interocular distance)"],
+      "upstream_blocks_used": ["geometry (_dist, and the landmark index constants BROW_INNER_R/L, GLABELLA)"],
+      "formula_reference": "features/x_core.py:compute_v_bf",
+      "units": "dimensionless ratio (sign-flipped so higher = more furrow)",
+      "version": 1
+    },
+    {
+      "feature_name": "v_bf.convergence_ratio",
+      "block": "X_core",
+      "status": "logged_only covariate",
+      "source_variables": ["pose-normalized face landmarks (BROW_INNER_R, BROW_INNER_L)", "io_dist"],
+      "upstream_blocks_used": ["geometry (_dist)"],
+      "formula_reference": "features/x_core.py:compute_v_bf",
+      "units": "dimensionless ratio",
+      "version": 1
+    },
+    {
+      "feature_name": "v_es",
+      "block": "X_core",
+      "status": "composite -- feeds Valence in map_to_valence_arousal (Decision 18); reliability=low",
+      "source_variables": ["pose-normalized face landmarks (EYE_R_*/EYE_L_* aperture landmarks)", "io_dist"],
+      "upstream_blocks_used": ["geometry (_dist, EYE_R_*/EYE_L_* landmark indices)"],
+      "formula_reference": "features/x_core.py:compute_v_es",
+      "units": "dimensionless eye-aspect-ratio (sign-flipped so higher = more crinkle)",
+      "version": 1
+    },
+    {
+      "feature_name": "v_es.cheek_raise",
+      "block": "X_core",
+      "status": "logged_only covariate -- demoted, wrong-signed at max-elicitation check",
+      "source_variables": ["pose-normalized face landmarks (IRIS_LEFT_CENTER, IRIS_RIGHT_CENTER, LIP_CORNER_R/L, EYE_R_*/EYE_L_* outer/inner)"],
+      "upstream_blocks_used": ["geometry (_dist, IRIS_*/EYE_*/LIP_CORNER_* landmark indices -- IRIS_* and EYE_*_OUTER/INNER are ALSO used by attention.py; see attention_v1.json's shared-constant note)"],
+      "formula_reference": "features/x_core.py:compute_v_es",
+      "units": "dimensionless ratio",
+      "version": 1
+    },
+    {
+      "feature_name": "v_jc",
+      "block": "X_core",
+      "status": "logged_only -- never composited, no reliable directional signal even at max effort",
+      "source_variables": ["pose-normalized face landmarks (LIP_UPPER_INNER, LIP_LOWER_INNER, LIP_CORNER_R/L, JAW_ANGLE_R/L)", "io_dist"],
+      "upstream_blocks_used": ["geometry (_dist, LIP_*/JAW_ANGLE_* landmark indices)"],
+      "formula_reference": "features/x_core.py:compute_v_jc",
+      "units": "dimensionless ratio (sign-flipped so higher = more compression)",
+      "version": 1
+    },
+    {
+      "feature_name": "v_pd",
+      "block": "X_core",
+      "status": "composite -- feeds Arousal in map_to_valence_arousal (Decision 18); reliability=medium",
+      "source_variables": ["pose_world_landmarks (nose, shoulder midpoint, metric world coordinates)", "its own ~1.5s rolling buffer (PD_BUFFER_SECONDS)"],
+      "upstream_blocks_used": [],
+      "formula_reference": "features/x_core.py:compute_v_pd",
+      "units": "summed positional variance, meters^2 (world-frame, camera-distance-invariant by construction)",
+      "version": 1
+    },
+    {
+      "feature_name": "neutral_calibration_reference",
+      "block": "X_core",
+      "status": "per-person baseline (mean, std, n) for v_bf/v_es/v_pd composites and v_jc/v_bf_convergence_ratio/v_es_cheek_raise covariates",
+      "source_variables": ["~25s of composite/covariate/yaw samples collected at session start (CALIBRATION_SECONDS)"],
+      "upstream_blocks_used": ["geometry (YAW_VARIANCE_CEILING_DEG2, via classify_calibration_quality)"],
+      "formula_reference": "features/x_core.py:NeutralCalibrator.complete, features/x_core.py:classify_calibration_quality",
+      "units": "same units as each underlying vector (mean/std), plus a boolean contamination flag",
+      "version": 1
+    },
+    {
+      "feature_name": "calibration_deviation",
+      "block": "X_core",
+      "status": "per-sample deviation-from-neutral (Pitfall #2 fix)",
+      "source_variables": ["raw composite value", "this person's own neutral_calibration_reference mean"],
+      "upstream_blocks_used": [],
+      "formula_reference": "features/x_core.py:NeutralCalibrator.deviation",
+      "units": "same units as the underlying raw composite (a difference, not a ratio)",
+      "version": 1
+    },
+    {
+      "feature_name": "z_score",
+      "block": "X_core",
+      "status": "helper -- standardizes a deviation by this person's own neutral std",
+      "source_variables": ["calibration_deviation", "this person's own neutral_calibration_reference std"],
+      "upstream_blocks_used": [],
+      "formula_reference": "features/x_core.py:_z_score",
+      "units": "standard deviations (unitless)",
+      "version": 1
+    },
+    {
+      "feature_name": "valence_arousal",
+      "block": "X_core",
+      "status": "DECISION 1 (this task): X_core. A re-representation of X_core at the same per-cycle cadence -- no temporal derivation (that is episodes.py's job), no context input. Valence=z_es only (single-source, pleasure-side only, NO validated pain axis); Arousal=z_pd only (Decision 18, post-Gate-2).",
+      "source_variables": ["v_bf calibration_deviation (logged-only, not used in the formula)", "v_es calibration_deviation", "v_pd calibration_deviation", "neutral_calibration_reference"],
+      "upstream_blocks_used": [],
+      "formula_reference": "features/x_core.py:map_to_valence_arousal",
+      "units": "tanh(z/2)-bounded, dimensionless, range (-1, 1)",
+      "version": 1
+    }
+  ]
+}

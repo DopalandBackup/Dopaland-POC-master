@@ -1,0 +1,46 @@
+{
+  "block": "E_t",
+  "manifest_version": 1,
+  "module": "features/episodes.py",
+  "generated_for": "D0PA1 Batch 1 Step 3 (feature-block separation)",
+  "notes": [
+    "PERMITTED: X_core -> E_t and C_t -> E_t. FORBIDDEN: A_t -> E_t and U_t -> E_t -- this module must never import features.attention or features.audio, directly or transitively. Enforced by tests/test_feature_separation.py.",
+    "DECISION 2 (this task) -- READ BEFORE USING window_summary AS A STUDY EPISODE: WindowAccumulator is classified as E_t (E_t = h(X_core, dX_core, C_t), and windowed avg/peak/variance is exactly that: a function of X_core over time). BUT 'episode' has a specific meaning in the D0PA1 study -- a trial in a controlled task environment -- and that environment DOES NOT YET EXIST (blocked on the client's D2 decision; see CLAUDE.md's BLOCKED section). The rolling window this class produces is an AGGREGATION WINDOW, not a study episode.",
+    "episode_unit for every feature below: \"rolling_10s_window\" (WINDOW_SECONDS, features/geometry.py). This is NOT stamped into the runtime window_summary dict itself -- adding a field there would change window_summary's JSON schema and break the byte-exact G5 regression net in tests/test_refactor_snapshot.py. The disclosure lives HERE and in docs/D1_DEPENDENCY_MAP.md instead.",
+    "When the study's real episode definition is defined (post-D2), it may differ from this window -- this manifest must be revised (bump manifest_version) when that happens, not silently reinterpreted."
+  ],
+  "episode_unit": "rolling_10s_window",
+  "episode_unit_status": "PROVISIONAL -- blocked on client D2 decision (prediction target: action classes, horizon, tie/rapid-succession handling). See CLAUDE.md's BLOCKED section and docs/D1_DEPENDENCY_MAP.md.",
+  "features": [
+    {
+      "feature_name": "window_summary.composite (v_bf, v_es, v_pd)",
+      "block": "E_t",
+      "status": "avg/peak/variance per 10s window, over calibrated deviation values",
+      "source_variables": ["X_core calibration_deviation samples for v_bf/v_es/v_pd, collected over one rolling_10s_window", "per-sample detected flag and yaw_deg"],
+      "upstream_blocks_used": ["x_core (consumes its calibration_deviation output as plain parameters -- does not import x_core.py itself)", "geometry (YAW_VARIANCE_CEILING_DEG2, via classify_window_confidence)"],
+      "formula_reference": "features/episodes.py:WindowAccumulator.flush",
+      "units": "same units as the underlying X_core composite (avg/peak), variance in squared units",
+      "version": 1
+    },
+    {
+      "feature_name": "window_summary.covariates (v_jc, v_bf_convergence_ratio, v_es_cheek_raise)",
+      "block": "E_t",
+      "status": "avg/peak/variance per 10s window, Track-B logging only, never read downstream",
+      "source_variables": ["X_core covariate samples, collected over one rolling_10s_window"],
+      "upstream_blocks_used": ["x_core (consumes its covariate output as plain parameters)"],
+      "formula_reference": "features/episodes.py:WindowAccumulator.flush",
+      "units": "same units as the underlying X_core covariate",
+      "version": 1
+    },
+    {
+      "feature_name": "window_quality (window-validity gate)",
+      "block": "E_t",
+      "status": "binary low_confidence flag + reasons list, flagged not suppressed",
+      "source_variables": ["detection_rate over the window", "yaw_variance_deg2 over the window"],
+      "upstream_blocks_used": ["geometry (YAW_VARIANCE_CEILING_DEG2)"],
+      "formula_reference": "features/episodes.py:classify_window_confidence",
+      "units": "boolean + list[str]",
+      "version": 1
+    }
+  ]
+}

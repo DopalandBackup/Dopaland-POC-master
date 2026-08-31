@@ -1,0 +1,13 @@
+{
+  "block": "U_t",
+  "manifest_version": 1,
+  "module": "features/audio.py",
+  "generated_for": "D0PA1 Batch 1 Step 3 (feature-block separation)",
+  "status": "NONEXISTENT -- not 'clean', not 'stubbed with placeholders'. There is no microphone capture, no audio processing, and no clock sync between an audio stream and the video pipeline anywhere in this repository.",
+  "notes": [
+    "CLAUDE.md's BLOCKED section lists this explicitly: 'U_t audio module -- stub only. No microphone, no capture, no clock sync exists. Pending a keep-or-formally-remove decision.'",
+    "FORBIDDEN directions U_t -> X_core and U_t -> E_t are trivially satisfied today because this block has zero content -- but stay enforced by tests/test_feature_separation.py's monkeypatch-to-raise check so the constraint cannot be silently violated the moment this file is filled in.",
+    "features/audio.py exposes NO functions, classes, or constants -- an empty module, not a stub that returns None or a placeholder value, is the honest representation of 'this does not exist yet' (G3)."
+  ],
+  "features": []
+}
